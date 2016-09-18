@@ -12,6 +12,7 @@ class ViewController: UIViewController {
     
     
     @IBOutlet private weak var display: UILabel!
+    @IBOutlet private weak var desc: UILabel!
     
     private var userIsInTheMiddleOfTyping = false
     private var hasDotInDigits = false
@@ -22,6 +23,7 @@ class ViewController: UIViewController {
             userIsInTheMiddleOfTyping = false
             brain.restart()
             display.text = "0"
+            desc.text = "..."
         } else if command == "⬅︎" {
             userIsInTheMiddleOfTyping = true
             
@@ -88,13 +90,19 @@ class ViewController: UIViewController {
         display.text = textCurrentlyInDisplay + digit
     }
     
-    private var displayValue: Double {
+    private var displayValue: Double? {
         get {
-            return Double(display.text!)!
+            return Double(display.text!)
         }
         
         set {
-            display.text = String(newValue)
+            //display.text = String(newValue!)
+            let numberFormatter = NSNumberFormatter()
+            numberFormatter.numberStyle = NSNumberFormatterStyle.DecimalStyle
+            numberFormatter.maximumFractionDigits = 6
+            numberFormatter.minimumFractionDigits = 0
+            
+            display.text = numberFormatter.stringFromNumber(newValue!)
         }
         
     }
@@ -104,13 +112,14 @@ class ViewController: UIViewController {
     @IBAction private func performOperation(sender: UIButton) {
         
         if userIsInTheMiddleOfTyping {
-            brain.setOperand(displayValue)
+            brain.setOperand(displayValue!)
             userIsInTheMiddleOfTyping = false
         }
         if let mathematicalSymbol = sender.currentTitle {
             brain.performOperation(mathematicalSymbol)
         }
         displayValue = brain.result
+        desc.text = brain.description
     }
 }
 
