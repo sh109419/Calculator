@@ -21,7 +21,7 @@ class ViewController: UIViewController {
         let command = sender.currentTitle!
         if command == "C" {
             userIsInTheMiddleOfTyping = false
-            brain.restart()
+            brain.clear()
             display.text = "0"
             desc.text = "..."
         } else if command == "⬅︎" {
@@ -105,6 +105,19 @@ class ViewController: UIViewController {
             display.text = numberFormatter.stringFromNumber(newValue!)
         }
         
+    }
+    
+    var savedProgram: CalculatorBrain.PropertyList?
+    
+    @IBAction func save() {
+        savedProgram = brain.program
+    }
+    
+    @IBAction func restore() {
+        if savedProgram != nil {
+            brain.program = savedProgram!
+            displayValue = brain.result
+        }
     }
     
     private var brain = CalculatorBrain()
