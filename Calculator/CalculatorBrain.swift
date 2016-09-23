@@ -29,7 +29,12 @@ class CalculatorBrain {
         }
     }
 
-    private var showConstantOrUnaryOperation = false
+    /* 
+       "a + b": a is the first operand, b is the second operand
+       var(showSecondOperand) indicate whether show part of 'b'
+       it is worked while pending != nil
+    */
+    private var showSecondOperand = false
     
     var description: String {
         get {
@@ -38,7 +43,7 @@ class CalculatorBrain {
                 desc = currentExpression
             } else {
                 desc = pending!.descriptionFunction(pending!.firstDescription,
-                                                    showConstantOrUnaryOperation ? currentExpression : "")
+                                                    showSecondOperand ? currentExpression : "")
             }
             return isPartialResult ? (desc + "...") : (desc + "=")
         }
@@ -65,18 +70,26 @@ class CalculatorBrain {
         internalProgram.append(operand)
     }
     
+    func setOperand(variableName: String) {
+        accumulator = variableValues[variableName] ?? 0.0
+        currentExpression = variableName
+        internalProgram.append(variableName)
+        showSecondOperand = true
+    }
+
     func performOperation(symbol: String) {
-        
+        showSecondOperand = true
         if let operation = operations[symbol] {
             switch operation {
             case .Constant(let associatedConstantValue):
                 accumulator = associatedConstantValue
                 currentExpression = symbol
-                showConstantOrUnaryOperation = true
             case .UnaryOperation(let function, let descriptionFunc):
+                if symbol == "±" {
+                    currentExpression =  MiunsOrPlusSignChange(currentExpression)
+                }
                 accumulator = function(accumulator)
                 currentExpression = descriptionFunc(currentExpression)
-                showConstantOrUnaryOperation = true
             case .BinaryOperation(let function, let descriptionFunc, let precedence):
                 // input "5 X + - 3" means "5 - 3" output "2"
                 if theLastInputIsBinaryOperation() == false {
@@ -97,7 +110,7 @@ class CalculatorBrain {
                 pending = PendingBinaryOperationInfo(binaryFunction: function, firstOperand: accumulator,
                                                      descriptionFunction: descriptionFunc, firstDescription: currentExpression)
                 currentPrecedence = precedence
-                showConstantOrUnaryOperation = false
+                showSecondOperand = false
             case .Equals:
                 executePendingBinaryOperation()
             }
@@ -105,6 +118,19 @@ class CalculatorBrain {
         internalProgram.append(symbol)
     }
     
+    private func MiunsOrPlusSignChange(expression: String) -> String {
+        var currentExpression = expression
+        if (Double(currentExpression) == nil) {
+            currentExpression = "(\(currentExpression))" // if "9" then "9" else if "2+3=" then "(2+3)"
+        }
+        currentExpression = "-" + currentExpression // "-9" or "-(2+3)"
+        
+        if pending != nil {
+            currentExpression = "(\(currentExpression))" // 9 + (-(2+3))
+        }
+        return currentExpression
+    }
+
     private func theLastInputIsBinaryOperation() -> Bool {
         if let operation = internalProgram.last as? String {
             return ["+","−","×","÷"].contains(operation)
@@ -124,13 +150,13 @@ class CalculatorBrain {
         "cos": Operation.UnaryOperation(cos,      {"cos(\($0))"}),
         "√": Operation.UnaryOperation(sqrt,       {"√(\($0))"}),
         "x²": Operation.UnaryOperation({$0 * $0}, {"(\($0))²"}),
-        "±": Operation.UnaryOperation({-$0},      {"-(\($0))"}),
+        "±": Operation.UnaryOperation({-$0},      {"\($0)"}),// do in MiunsOrPlusSignChange()
         "%": Operation.UnaryOperation({$0 / 100}, {"(\($0))%"}),
         "+": Operation.BinaryOperation({$0 + $1}, {"\($0)+\($1)"}, Precedence.Min),
         "−": Operation.BinaryOperation({$0 - $1}, {"\($0)-\($1)"}, Precedence.Min),
         "×": Operation.BinaryOperation({$0 * $1}, {"\($0)×\($1)"}, Precedence.Max),
         "÷": Operation.BinaryOperation({$0 / $1}, {"\($0)÷\($1)"}, Precedence.Max),
-        "=": Operation.Equals
+        "=": Operation.Equals,
     ]
     
     private enum Operation {
@@ -164,7 +190,6 @@ class CalculatorBrain {
         get {
             return internalProgram
         }
-        
         set {
             clear()
             if let arrayOfOps = newValue as? [AnyObject] {
@@ -172,11 +197,24 @@ class CalculatorBrain {
                     if let operand = op as? Double {
                         setOperand(operand)
                     } else if let operation = op as? String {
-                        performOperation(operation)
+                        if variableValues[operation] != nil {
+                            setOperand(operation)
+                        } else {
+                            performOperation(operation)
+                        }
                     }
                 }
             }
         }
+    }
+    
+    func undo() {
+        if internalProgram.isEmpty == false {
+            internalProgram.removeLast()
+        } else {
+            clear()
+        }
+        program = internalProgram
     }
     
     func clear() {
@@ -186,5 +224,15 @@ class CalculatorBrain {
         internalProgram.removeAll()
     }
     
+    func restart() {
+        clear()
+        variableValues.removeAll()
+    }
+    
+    var variableValues: Dictionary<String, Double> = [:]
+    
+    func setVariable(name: String, value: Double) {
+        variableValues[name] = value
+    }
    
 }

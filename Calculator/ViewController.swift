@@ -21,23 +21,30 @@ class ViewController: UIViewController {
         let command = sender.currentTitle!
         if command == "C" {
             userIsInTheMiddleOfTyping = false
-            brain.clear()
+            brain.restart()
             display.text = "0"
             desc.text = "..."
         } else if command == "⬅︎" {
-            userIsInTheMiddleOfTyping = true
-            
-            let inputCount = display.text?.characters.count
-            if inputCount == 1 {
-                display.text = "0"
-            } else if (inputCount == 2) && (display.text?.characters.first == "-") {
-                display.text = "0"
-            } else if inputCount > 1 {
-                let removedChar = display.text?.removeAtIndex(display.text!.endIndex.predecessor())
-                // check dot
-                if removedChar == "." {
-                    hasDotInDigits = false
+            // if userIsInTheMiddleOfTyping = true then do "backspace"
+            // if userIsInTheMiddleOfTyping = false then do "undo"
+            if userIsInTheMiddleOfTyping {
+                let inputCount = display.text?.characters.count
+                if inputCount == 1 {
+                    display.text = "0"
+                    userIsInTheMiddleOfTyping = false
+                } else if (inputCount == 2) && (display.text?.characters.first == "-") {
+                    display.text = "0"
+                } else if inputCount > 1 {
+                    let removedChar = display.text?.removeAtIndex(display.text!.endIndex.predecessor())
+                    // check dot
+                    if removedChar == "." {
+                        hasDotInDigits = false
+                    }
                 }
+            } else {
+                brain.undo()
+                displayValue = brain.result
+                desc.text = brain.description
             }
         }
     }
@@ -86,7 +93,7 @@ class ViewController: UIViewController {
             }
             return
         }
-           
+        
         display.text = textCurrentlyInDisplay + digit
     }
     
@@ -117,7 +124,32 @@ class ViewController: UIViewController {
         if savedProgram != nil {
             brain.program = savedProgram!
             displayValue = brain.result
+            desc.text = brain.description
         }
+    }
+    
+    @IBAction func saveVariable(sender: UIButton) {
+        save()
+        if let variableName = sender.currentTitle {
+            if variableName.characters.count > 0  {
+                brain.setVariable(variableName.substringFromIndex(variableName.endIndex.predecessor()), value: displayValue ?? 0.0)
+            }
+        }
+        restore()
+        userIsInTheMiddleOfTyping = false
+
+    }
+    
+    @IBAction func touchVariable(sender: UIButton) {
+        if userIsInTheMiddleOfTyping {
+            brain.setOperand(displayValue!)
+            userIsInTheMiddleOfTyping = false
+        }
+        if let variableName = sender.currentTitle {
+            brain.setOperand(variableName)
+        }
+        displayValue = brain.result
+        desc.text = brain.description
     }
     
     private var brain = CalculatorBrain()
