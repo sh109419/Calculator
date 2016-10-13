@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class CalculatorViewController: UIViewController {
     
     
     @IBOutlet private weak var display: UILabel!
@@ -166,5 +166,70 @@ class ViewController: UIViewController {
         displayValue = brain.result
         desc.text = brain.description
     }
+    
+    override func shouldPerformSegueWithIdentifier(identifier: String, sender: AnyObject?) -> Bool {
+        if identifier == "show chart" {
+            if (userIsInTheMiddleOfTyping == true) || (brain.isPartialResult == true) {
+                return false
+            }
+        }
+        return true
+    }
+    
+     //var function: (CGFloat -> Double)?
+    /*func foo(x: CGFloat) -> Double {
+        self.brain.setVariable("M", value: Double(x))
+        self.brain.program = self.brain.program
+        return self.brain.result
+    }*/
+    
+    let storedKeyName = "brain.program"
+    
+    private func setGraphViewController(program: AnyObject, vc: GraphViewController) {
+        let brain = CalculatorBrain()
+        brain.setVariable("M", value: 0.0)// make sure variable "m" in variablevalues
+        // if not in varibalevalues, variable 'm' will be remove from program
+        // in this case, brain.program will not include 'm', event it is in program
+
+        brain.program = program
+        
+        let title = brain.description.stringByTrimmingCharactersInSet(NSCharacterSet(charactersInString: "="))
+        vc.navigationItem.title = title
+        vc.function = {
+            brain.setVariable("M", value: Double($0))
+            let temp = brain.program
+            brain.program = temp
+            return brain.result
+        }
+    }
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+     
+        if segue.identifier == "show chart" {
+            var destnationVC = segue.destinationViewController
+            if destnationVC is UINavigationController {
+                destnationVC = (destnationVC as! UINavigationController).visibleViewController!
+            }
+            if let graphVC = destnationVC as? GraphViewController {
+                setGraphViewController(self.brain.program, vc: graphVC)
+            }
+            // save last program
+            NSUserDefaults.standardUserDefaults().setObject(self.brain.program, forKey: storedKeyName)
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // When your application first launches, have it show the last graph it was showing
+        let program = NSUserDefaults.standardUserDefaults().objectForKey(storedKeyName) ?? []
+        if let splitViewController = splitViewController {
+            let controllers = splitViewController.viewControllers
+            if let graphViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? GraphViewController {
+                setGraphViewController(program, vc: graphViewController)
+            }
+        }
+    }
+    
+
 }
 

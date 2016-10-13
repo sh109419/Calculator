@@ -15,7 +15,7 @@ class CalculatorBrain {
     private var internalProgram = [AnyObject]()
     
     //whether there is a binary operation pending
-    private var isPartialResult: Bool {
+    var isPartialResult: Bool {
         get {
             return (pending != nil)
         }
