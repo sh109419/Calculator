@@ -31,6 +31,16 @@ class GraphViewController: UIViewController {
     //it is perfectly legal to have an Optional function 
     var function: (CGFloat -> Double)?
 
+    deinit {
+        print("I have break a memory cycle by setting dataSource = nil")
+    }
+    
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        //break memory cycle
+        graphView.dataSource = nil
+    }
+
 }
 
 extension GraphViewController: GraphViewDataSource {
