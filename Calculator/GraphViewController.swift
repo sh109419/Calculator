@@ -26,9 +26,26 @@ class GraphViewController: UIViewController {
         super.viewWillTransitionToSize(size, withTransitionCoordinator: coordinator)
         let preBounds = graphView.bounds
         coordinator.animateAlongsideTransition({ _ in self.graphView.addjustPointOrigin(preBounds)}, completion: nil)
+        printSizeClass()
     }
     
-    //it is perfectly legal to have an Optional function 
+    // MARK:- Size Class
+    private func printSizeClass() {
+        UIDevice.currentDevice().model
+        print(" vertical: \(sizeClassToString(traitCollection.verticalSizeClass)), horizon: \(sizeClassToString(traitCollection.horizontalSizeClass))")
+    }
+    
+    private func sizeClassToString(sizeClass: UIUserInterfaceSizeClass) -> String {
+        var result: String
+        switch sizeClass {
+        case .Unspecified: result = "Unspecified"
+        case .Compact: result = "Compact"
+        case .Regular: result = "Regular"
+        }
+        return result
+    }
+
+    //it is perfectly legal to have an Optional function
     var function: (CGFloat -> Double)?
 
     deinit {
