@@ -22,37 +22,47 @@ class GraphViewController: UIViewController {
         }
     }
     
-    override func viewWillTransitionToSize(size: CGSize, withTransitionCoordinator coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransitionToSize(size, withTransitionCoordinator: coordinator)
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
         let preBounds = graphView.bounds
-        coordinator.animateAlongsideTransition({ _ in self.graphView.addjustPointOrigin(preBounds)}, completion: nil)
+        coordinator.animate(alongsideTransition: { _ in  self.graphView.addjustPointOrigin(preBounds);  self.printSizeClass()  }, completion: nil)
         printSizeClass()
     }
     
-    // MARK:- Size Class
-    private func printSizeClass() {
-        UIDevice.currentDevice().model
-        print(" vertical: \(sizeClassToString(traitCollection.verticalSizeClass)), horizon: \(sizeClassToString(traitCollection.horizontalSizeClass))")
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        printSizeClass()
     }
     
-    private func sizeClassToString(sizeClass: UIUserInterfaceSizeClass) -> String {
+    /*override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { coordinator in self.printSizeClass() }, completion: nil)
+    }*/
+    
+
+    // MARK:- Size Class
+    fileprivate func printSizeClass() {
+        print("Graph view# vertical: \(sizeClassToString(traitCollection.verticalSizeClass)), horizon: \(sizeClassToString(traitCollection.horizontalSizeClass))")
+    }
+    
+    fileprivate func sizeClassToString(_ sizeClass: UIUserInterfaceSizeClass) -> String {
         var result: String
         switch sizeClass {
-        case .Unspecified: result = "Unspecified"
-        case .Compact: result = "Compact"
-        case .Regular: result = "Regular"
+        case .unspecified: result = "Unspecified"
+        case .compact: result = "Compact"
+        case .regular: result = "Regular"
         }
         return result
     }
 
     //it is perfectly legal to have an Optional function
-    var function: (CGFloat -> Double)?
+    var function: ((CGFloat) -> Double)?
 
     deinit {
         print("I have break a memory cycle by setting dataSource = nil")
     }
     
-    override func viewWillDisappear(animated: Bool) {
+    override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         //break memory cycle
         graphView.dataSource = nil
@@ -62,7 +72,7 @@ class GraphViewController: UIViewController {
 
 extension GraphViewController: GraphViewDataSource {
     
-    func getCoordinateY(x: CGFloat) -> CGFloat? {
+    func getCoordinateY(_ x: CGFloat) -> CGFloat? {
         if let function = function {
             return CGFloat(function(x))
         }

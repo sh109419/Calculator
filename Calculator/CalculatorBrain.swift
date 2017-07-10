@@ -11,8 +11,8 @@ import Foundation
 
 class CalculatorBrain {
     
-    private var accumulator = 0.0
-    private var internalProgram = [AnyObject]()
+    fileprivate var accumulator = 0.0
+    fileprivate var internalProgram = [AnyObject]()
     
     //whether there is a binary operation pending
     var isPartialResult: Bool {
@@ -21,10 +21,10 @@ class CalculatorBrain {
         }
     }
     
-    private var currentExpression = "0" {
+    fileprivate var currentExpression = "0" {
         didSet {
             if pending == nil {
-                currentPrecedence = Precedence.Max
+                currentPrecedence = Precedence.max
             }
         }
     }
@@ -34,7 +34,7 @@ class CalculatorBrain {
        var(showSecondOperand) indicate whether show part of 'b'
        it is worked while pending != nil
     */
-    private var showSecondOperand = false
+    fileprivate var showSecondOperand = false
     
     var description: String {
         get {
@@ -55,42 +55,42 @@ class CalculatorBrain {
         }
     }
    
-    private func formatDigit(number: Double) -> String {
-        let numberFormatter = NSNumberFormatter()
-        numberFormatter.numberStyle = NSNumberFormatterStyle.DecimalStyle
+    fileprivate func formatDigit(_ number: Double) -> String {
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = NumberFormatter.Style.decimal
         //numberFormatter.minimumIntegerDigits = 1;
         numberFormatter.maximumFractionDigits = 6
         numberFormatter.minimumFractionDigits = 0
-        return numberFormatter.stringFromNumber(number)!
+        return numberFormatter.string(from: NSNumber(value: number))!
     }
     
-    func setOperand(operand: Double) {
+    func setOperand(_ operand: Double) {
         accumulator = operand
         currentExpression = formatDigit(operand)
-        internalProgram.append(operand)
+        internalProgram.append(operand as AnyObject)
     }
     
-    func setOperand(variableName: String) {
+    func setOperand(_ variableName: String) {
         accumulator = variableValues[variableName] ?? 0.0
         currentExpression = variableName
-        internalProgram.append(variableName)
+        internalProgram.append(variableName as AnyObject)
         showSecondOperand = true
     }
 
-    func performOperation(symbol: String) {
+    func performOperation(_ symbol: String) {
         showSecondOperand = true
         if let operation = operations[symbol] {
             switch operation {
-            case .Constant(let associatedConstantValue):
+            case .constant(let associatedConstantValue):
                 accumulator = associatedConstantValue
                 currentExpression = symbol
-            case .UnaryOperation(let function, let descriptionFunc):
+            case .unaryOperation(let function, let descriptionFunc):
                 if symbol == "±" {
                     currentExpression =  MiunsOrPlusSignChange(currentExpression)
                 }
                 accumulator = function(accumulator)
                 currentExpression = descriptionFunc(currentExpression)
-            case .BinaryOperation(let function, let descriptionFunc, let precedence):
+            case .binaryOperation(let function, let descriptionFunc, let precedence):
                 // input "5 X + - 3" means "5 - 3" output "2"
                 if theLastInputIsBinaryOperation() == false {
                     executePendingBinaryOperation()
@@ -101,9 +101,9 @@ class CalculatorBrain {
                 } else if currentPrecedence.rawValue > precedence.rawValue {
                     // remove unecessary "()"
                     if currentExpression.hasPrefix("(") && currentExpression.hasSuffix(")") {
-                        let range = Range<String.Index>( currentExpression.startIndex.advancedBy(1) ..< currentExpression.endIndex.advancedBy(-1))
-                        currentExpression = currentExpression.substringWithRange(range)
-                        currentPrecedence = Precedence.Min// restore precedence
+                        let range = Range<String.Index>( currentExpression.characters.index(currentExpression.startIndex, offsetBy: 1) ..< currentExpression.characters.index(currentExpression.endIndex, offsetBy: -1))
+                        currentExpression = currentExpression.substring(with: range)
+                        currentPrecedence = Precedence.min// restore precedence
                     }
                 }
                 
@@ -111,14 +111,14 @@ class CalculatorBrain {
                                                      descriptionFunction: descriptionFunc, firstDescription: currentExpression)
                 currentPrecedence = precedence
                 showSecondOperand = false
-            case .Equals:
+            case .equals:
                 executePendingBinaryOperation()
             }
         }
-        internalProgram.append(symbol)
+        internalProgram.append(symbol as AnyObject)
     }
     
-    private func MiunsOrPlusSignChange(expression: String) -> String {
+    fileprivate func MiunsOrPlusSignChange(_ expression: String) -> String {
         var currentExpression = expression
         if (Double(currentExpression) == nil) {
             currentExpression = "(\(currentExpression))" // if "9" then "9" else if "2+3=" then "(2+3)"
@@ -131,52 +131,52 @@ class CalculatorBrain {
         return currentExpression
     }
 
-    private func theLastInputIsBinaryOperation() -> Bool {
+    fileprivate func theLastInputIsBinaryOperation() -> Bool {
         if let operation = internalProgram.last as? String {
             return ["+","−","×","÷"].contains(operation)
         }
         return false
     }
     
-    private enum Precedence: Int {
-        case Min = 0, Max
+    fileprivate enum Precedence: Int {
+        case min = 0, max
     }
     
-    private var currentPrecedence = Precedence.Max
+    fileprivate var currentPrecedence = Precedence.max
     
-    private var operations: Dictionary<String, Operation> = [
-        "π": Operation.Constant(M_PI),
-        "e": Operation.Constant(M_E),
-        "cos": Operation.UnaryOperation(cos,      {"cos(\($0))"}),
-        "√": Operation.UnaryOperation(sqrt,       {"√(\($0))"}),
-        "x²": Operation.UnaryOperation({$0 * $0}, {"(\($0))²"}),
-        "±": Operation.UnaryOperation({-$0},      {"\($0)"}),// do in MiunsOrPlusSignChange()
-        "%": Operation.UnaryOperation({$0 / 100}, {"(\($0))%"}),
-        "+": Operation.BinaryOperation({$0 + $1}, {"\($0)+\($1)"}, Precedence.Min),
-        "−": Operation.BinaryOperation({$0 - $1}, {"\($0)-\($1)"}, Precedence.Min),
-        "×": Operation.BinaryOperation({$0 * $1}, {"\($0)×\($1)"}, Precedence.Max),
-        "÷": Operation.BinaryOperation({$0 / $1}, {"\($0)÷\($1)"}, Precedence.Max),
-        "=": Operation.Equals,
+    fileprivate var operations: Dictionary<String, Operation> = [
+        "π": Operation.constant(M_PI),
+        "e": Operation.constant(M_E),
+        "cos": Operation.unaryOperation(cos,      {"cos(\($0))"}),
+        "√": Operation.unaryOperation(sqrt,       {"√(\($0))"}),
+        "x²": Operation.unaryOperation({$0 * $0}, {"(\($0))²"}),
+        "±": Operation.unaryOperation({-$0},      {"\($0)"}),// do in MiunsOrPlusSignChange()
+        "%": Operation.unaryOperation({$0 / 100}, {"(\($0))%"}),
+        "+": Operation.binaryOperation({$0 + $1}, {"\($0)+\($1)"}, Precedence.min),
+        "−": Operation.binaryOperation({$0 - $1}, {"\($0)-\($1)"}, Precedence.min),
+        "×": Operation.binaryOperation({$0 * $1}, {"\($0)×\($1)"}, Precedence.max),
+        "÷": Operation.binaryOperation({$0 / $1}, {"\($0)÷\($1)"}, Precedence.max),
+        "=": Operation.equals,
     ]
     
-    private enum Operation {
-        case Constant(Double)
-        case UnaryOperation((Double)->Double, (String)->String)
-        case BinaryOperation((Double,Double)->Double,(String,String)->String,Precedence)
-        case Equals
+    fileprivate enum Operation {
+        case constant(Double)
+        case unaryOperation((Double)->Double, (String)->String)
+        case binaryOperation((Double,Double)->Double,(String,String)->String,Precedence)
+        case equals
     }
     
     
-    private var pending: PendingBinaryOperationInfo?
+    fileprivate var pending: PendingBinaryOperationInfo?
     
-    private struct PendingBinaryOperationInfo {
+    fileprivate struct PendingBinaryOperationInfo {
         var binaryFunction: (Double, Double) -> Double
         var firstOperand: Double
         var descriptionFunction: (String, String) -> String
         var firstDescription: String
     }
     
-    private func executePendingBinaryOperation() {
+    fileprivate func executePendingBinaryOperation() {
         if pending != nil {
             accumulator = pending!.binaryFunction(pending!.firstOperand, accumulator)
             currentExpression = pending!.descriptionFunction(pending!.firstDescription, currentExpression)
@@ -188,7 +188,7 @@ class CalculatorBrain {
     
     var program: PropertyList {
         get {
-            return internalProgram
+            return internalProgram as CalculatorBrain.PropertyList
         }
         set {
             clear()
@@ -214,7 +214,7 @@ class CalculatorBrain {
         } else {
             clear()
         }
-        program = internalProgram
+        program = internalProgram as CalculatorBrain.PropertyList
     }
     
     func clear() {
@@ -231,7 +231,7 @@ class CalculatorBrain {
     
     var variableValues: Dictionary<String, Double> = [:]
     
-    func setVariable(name: String, value: Double) {
+    func setVariable(_ name: String, value: Double) {
         variableValues[name] = value
     }
    

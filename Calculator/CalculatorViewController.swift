@@ -7,17 +7,41 @@
 //
 
 import UIKit
+// FIXME: comparison operators with optionals were removed from the Swift Standard Libary.
+// Consider refactoring the code to use the non-optional operators.
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
+}
+
+// FIXME: comparison operators with optionals were removed from the Swift Standard Libary.
+// Consider refactoring the code to use the non-optional operators.
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
 
 class CalculatorViewController: UIViewController {
     
     
-    @IBOutlet private weak var display: UILabel!
-    @IBOutlet private weak var desc: UILabel!
+    @IBOutlet fileprivate weak var display: UILabel!
+    @IBOutlet fileprivate weak var desc: UILabel!
     
-    private var userIsInTheMiddleOfTyping = false
-    private var hasDotInDigits = false
+    fileprivate var userIsInTheMiddleOfTyping = false
+    fileprivate var hasDotInDigits = false
     
-    @IBAction private func editControl(sender: UIButton) {
+    @IBAction fileprivate func editControl(_ sender: UIButton) {
         let command = sender.currentTitle!
         if command == "C" {
             userIsInTheMiddleOfTyping = false
@@ -35,7 +59,7 @@ class CalculatorViewController: UIViewController {
                 } else if (inputCount == 2) && (display.text?.characters.first == "-") {
                     display.text = "0"
                 } else if inputCount > 1 {
-                    let removedChar = display.text?.removeAtIndex(display.text!.endIndex.predecessor())
+                    let removedChar = display.text?.remove(at: display.text!.characters.index(before: display.text!.endIndex))
                     // check dot
                     if removedChar == "." {
                         hasDotInDigits = false
@@ -49,7 +73,7 @@ class CalculatorViewController: UIViewController {
         }
     }
     
-    @IBAction private func touchDigit(sender: UIButton) {
+    @IBAction fileprivate func touchDigit(_ sender: UIButton) {
         let digit = sender.currentTitle!
         
         if userIsInTheMiddleOfTyping == false {
@@ -97,19 +121,19 @@ class CalculatorViewController: UIViewController {
         display.text = textCurrentlyInDisplay + digit
     }
     
-    private var displayValue: Double? {
+    fileprivate var displayValue: Double? {
         get {
             return Double(display.text!)
         }
         
         set {
             //display.text = String(newValue!)
-            let numberFormatter = NSNumberFormatter()
-            numberFormatter.numberStyle = NSNumberFormatterStyle.DecimalStyle
+            let numberFormatter = NumberFormatter()
+            numberFormatter.numberStyle = NumberFormatter.Style.decimal
             numberFormatter.maximumFractionDigits = 6
             numberFormatter.minimumFractionDigits = 0
             
-            display.text = numberFormatter.stringFromNumber(newValue!)
+            display.text = numberFormatter.string(from: NSNumber(value: newValue!))
         }
         
     }
@@ -128,11 +152,11 @@ class CalculatorViewController: UIViewController {
         }
     }
     
-    @IBAction func saveVariable(sender: UIButton) {
+    @IBAction func saveVariable(_ sender: UIButton) {
         save()
         if let variableName = sender.currentTitle {
             if variableName.characters.count > 0  {
-                brain.setVariable(variableName.substringFromIndex(variableName.endIndex.predecessor()), value: displayValue ?? 0.0)
+                brain.setVariable(variableName.substring(from: variableName.characters.index(before: variableName.endIndex)), value: displayValue ?? 0.0)
             }
         }
         restore()
@@ -140,7 +164,7 @@ class CalculatorViewController: UIViewController {
 
     }
     
-    @IBAction func touchVariable(sender: UIButton) {
+    @IBAction func touchVariable(_ sender: UIButton) {
         if userIsInTheMiddleOfTyping {
             brain.setOperand(displayValue!)
             userIsInTheMiddleOfTyping = false
@@ -152,9 +176,9 @@ class CalculatorViewController: UIViewController {
         desc.text = brain.description
     }
     
-    private var brain = CalculatorBrain()
+    fileprivate var brain = CalculatorBrain()
     
-    @IBAction private func performOperation(sender: UIButton) {
+    @IBAction fileprivate func performOperation(_ sender: UIButton) {
         
         if userIsInTheMiddleOfTyping {
             brain.setOperand(displayValue!)
@@ -167,7 +191,7 @@ class CalculatorViewController: UIViewController {
         desc.text = brain.description
     }
     
-    override func shouldPerformSegueWithIdentifier(identifier: String, sender: AnyObject?) -> Bool {
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
         if identifier == "show chart" {
             if (userIsInTheMiddleOfTyping == true) || (brain.isPartialResult == true) {
                 return false
@@ -185,7 +209,7 @@ class CalculatorViewController: UIViewController {
     
     let storedKeyName = "brain.program"
     
-    private func setGraphViewController(program: AnyObject, vc: GraphViewController) {
+    fileprivate func setGraphViewController(_ program: AnyObject, vc: GraphViewController) {
         let brain = CalculatorBrain()
         brain.setVariable("M", value: 0.0)// make sure variable "m" in variablevalues
         // if not in varibalevalues, variable 'm' will be remove from program
@@ -193,7 +217,7 @@ class CalculatorViewController: UIViewController {
 
         brain.program = program
         
-        let title = brain.description.stringByTrimmingCharactersInSet(NSCharacterSet(charactersInString: "="))
+        let title = brain.description.trimmingCharacters(in: CharacterSet(charactersIn: "="))
         vc.navigationItem.title = title
         vc.function = {
             brain.setVariable("M", value: Double($0))
@@ -203,10 +227,10 @@ class CalculatorViewController: UIViewController {
         }
     }
     
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
      
         if segue.identifier == "show chart" {
-            var destnationVC = segue.destinationViewController
+            var destnationVC = segue.destination
             if destnationVC is UINavigationController {
                 destnationVC = (destnationVC as! UINavigationController).visibleViewController!
             }
@@ -214,76 +238,52 @@ class CalculatorViewController: UIViewController {
                 setGraphViewController(self.brain.program, vc: graphVC)
             }
             // save last program
-            NSUserDefaults.standardUserDefaults().setObject(self.brain.program, forKey: storedKeyName)
+            UserDefaults.standard.set(self.brain.program, forKey: storedKeyName)
         }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // When your application first launches, have it show the last graph it was showing
-        let program = NSUserDefaults.standardUserDefaults().objectForKey(storedKeyName) ?? []
+        let program = UserDefaults.standard.object(forKey: storedKeyName) ?? []
         if let splitViewController = splitViewController {
             let controllers = splitViewController.viewControllers
             if let graphViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? GraphViewController {
-                setGraphViewController(program, vc: graphViewController)
+                setGraphViewController(program as AnyObject, vc: graphViewController)
             }
         }
+        //printSizeClass()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         printSizeClass()
     }
     
-    // MARK:- Size Class
-    private func printSizeClass() {
-        UIDevice.currentDevice().model
-        print("\(deviceModelName()) vertical: \(sizeClassToString(traitCollection.verticalSizeClass)), horizon: \(sizeClassToString(traitCollection.horizontalSizeClass))")
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { coordinator in self.printSizeClass() }, completion: nil)
     }
     
-    private func sizeClassToString(sizeClass: UIUserInterfaceSizeClass) -> String {
+    // MARK:- Size Class
+    fileprivate func printSizeClass() {
+        if !userIsInTheMiddleOfTyping {
+        print("CAlculator View# vertical: \(sizeClassToString(traitCollection.verticalSizeClass)), horizon: \(sizeClassToString(traitCollection.horizontalSizeClass))")
+        }
+    }
+    
+    fileprivate func sizeClassToString(_ sizeClass: UIUserInterfaceSizeClass) -> String {
         var result: String
         switch sizeClass {
-            case .Unspecified: result = "Unspecified"
-            case .Compact: result = "Compact"
-            case .Regular: result = "Regular"
+            case .unspecified: result = "Unspecified"
+            case .compact: result = "Compact"
+            case .regular: result = "Regular"
         }
         return result
     }
     
-    //MARK: - UIDevice extension
-    private func deviceModelName() -> String {
-        var systemInfo = utsname()
-        uname(&systemInfo)
-        let machineMirror = Mirror(reflecting: systemInfo.machine)
-        let identifier = machineMirror.children.reduce("") { identifier, element in
-            guard let value = element.value as? Int8 where value != 0 else { return identifier }
-            return identifier + String(UnicodeScalar(UInt8(value)))
-        }
-        switch identifier {
-        case "iPod5,1":                                 return "iPod Touch 5"
-        case "iPod7,1":                                 return "iPod Touch 6"
-        case "iPhone3,1", "iPhone3,2", "iPhone3,3":     return "iPhone 4"
-        case "iPhone4,1":                               return "iPhone 4s"
-        case "iPhone5,1", "iPhone5,2":                  return "iPhone 5"
-        case "iPhone5,3", "iPhone5,4":                  return "iPhone 5c"
-        case "iPhone6,1", "iPhone6,2":                  return "iPhone 5s"
-        case "iPhone7,2":                               return "iPhone 6"
-        case "iPhone7,1":                               return "iPhone 6 Plus"
-        case "iPhone8,1":                               return "iPhone 6s"
-        case "iPhone8,2":                               return "iPhone 6s Plus"
-        case "iPad2,1", "iPad2,2", "iPad2,3", "iPad2,4":return "iPad 2"
-        case "iPad3,1", "iPad3,2", "iPad3,3":           return "iPad 3"
-        case "iPad3,4", "iPad3,5", "iPad3,6":           return "iPad 4"
-        case "iPad4,1", "iPad4,2", "iPad4,3":           return "iPad Air"
-        case "iPad5,3", "iPad5,4":                      return "iPad Air 2"
-        case "iPad2,5", "iPad2,6", "iPad2,7":           return "iPad Mini"
-        case "iPad4,4", "iPad4,5", "iPad4,6":           return "iPad Mini 2"
-        case "iPad4,7", "iPad4,8", "iPad4,9":           return "iPad Mini 3"
-        case "iPad5,1", "iPad5,2":                      return "iPad Mini 4"
-        case "iPad6,7", "iPad6,8":                      return "iPad Pro"
-        case "AppleTV5,3":                              return "Apple TV"
-        case "i386", "x86_64":                          return "Simulator"
-        default:                                        return identifier
-        }
-
+    
         
-    }
+    
  }
 

@@ -9,7 +9,7 @@
 import UIKit
 
 protocol GraphViewDataSource {
-    func getCoordinateY(x: CGFloat) -> CGFloat?
+    func getCoordinateY(_ x: CGFloat) -> CGFloat?
 }
 
 @IBDesignable
@@ -17,7 +17,7 @@ class GraphView: UIView {
     @IBInspectable
     var scale: CGFloat = 40 { didSet { setNeedsDisplay() } }
     @IBInspectable
-    var color: UIColor = UIColor.blueColor() { didSet { setNeedsDisplay() } }
+    var color: UIColor = UIColor.blue { didSet { setNeedsDisplay() } }
     @IBInspectable
     var lineWidth: CGFloat = 5.0 { didSet { setNeedsDisplay() } }
     
@@ -26,26 +26,26 @@ class GraphView: UIView {
     //private var brain = CalculatorBrain()
     var dataSource: GraphViewDataSource?
     
-    private let axes = AxesDrawer(color: UIColor.redColor())
-    private var origin: CGPoint! { didSet { setNeedsDisplay() } }
+    fileprivate let axes = AxesDrawer(color: UIColor.red)
+    fileprivate var origin: CGPoint! { didSet { setNeedsDisplay() } }
     
     //set UIViewContentMode to redraw, when transite size, system run drawRect()
     // in this case, how to change the point 'origin'?
     // according to the changed size to change the position of origin
     // use viewWillTransitionToSize()
     
-    func addjustPointOrigin(preBounds: CGRect) {
+    func addjustPointOrigin(_ preBounds: CGRect) {
         let x = origin.x * bounds.width / preBounds.width
         let y = origin.y * bounds.height / preBounds.height
-        origin = CGPointMake(x, y)
+        origin = CGPoint(x: x, y: y)
     }
     
     /* the methods that handle the gestures */
     
     // pinch gesture
-    func changeScale(recognizer: UIPinchGestureRecognizer) {
+    func changeScale(_ recognizer: UIPinchGestureRecognizer) {
         switch recognizer.state {
-        case .Changed, .Ended:
+        case .changed, .ended:
             scale *= recognizer.scale
             recognizer.scale = 1.0
             
@@ -54,12 +54,12 @@ class GraphView: UIView {
     }
     
     // double tap gesture
-    func setOriginPoint(recognizer: UITapGestureRecognizer) {
-        origin = recognizer.locationInView(self)
+    func setOriginPoint(_ recognizer: UITapGestureRecognizer) {
+        origin = recognizer.location(in: self)
     }
     
     // pan gesture
-    func moveGraph(recognizer: UIPanGestureRecognizer) {
+    func moveGraph(_ recognizer: UIPanGestureRecognizer) {
         /*let _transX = recognizer.translationInView(self).x
         let _transY = recognizer.translationInView(self).y
         switch recognizer.state {
@@ -75,12 +75,12 @@ class GraphView: UIView {
             break
         }*/
         switch recognizer.state {
-        case .Changed, .Ended:
+        case .changed, .ended:
             // Update anything that depends on the pan gesture using translation.x and translation.y
-            origin.x += recognizer.translationInView(self).x
-            origin.y += recognizer.translationInView(self).y
+            origin.x += recognizer.translation(in: self).x
+            origin.y += recognizer.translation(in: self).y
             // Cumulative since start of recognition, get 'incremental' translation
-            recognizer.setTranslation(CGPointZero, inView: self)
+            recognizer.setTranslation(CGPoint.zero, in: self)
         default: break
         }
 
@@ -88,7 +88,7 @@ class GraphView: UIView {
     
     // Only override drawRect: if you perform custom drawing.
     // An empty implementation adversely affects performance during animation.
-    override func drawRect(rect: CGRect) {
+    override func draw(_ rect: CGRect) {
         // Drawing code
         origin = origin ?? CGPoint(x: bounds.midX, y: bounds.midY)
         color.set()
@@ -97,14 +97,15 @@ class GraphView: UIView {
         drawGraph()
         
         // draw axes
-        axes.drawAxesInRect(rect, origin: origin, pointsPerUnit: scale)
+        //axes.drawAxesInRect(rect, origin: origin, pointsPerUnit: scale)
+        axes.drawAxes(in: rect, origin: origin, pointsPerUnit: scale)
     }
     
     /*
     not drawing an almost vertical line between those two points if the function is actually probably discontinuous there (e.g. tan(x)).
      if the sign changed (from +y to -y) then start new line
     */
-    private func drawGraph() {
+    fileprivate func drawGraph() {
         guard let data = dataSource else {
             print("data set not found")
             return
@@ -127,10 +128,10 @@ class GraphView: UIView {
                     prePointY = point.y
                    
                     if isNewLine {
-                        path.moveToPoint(point)
+                        path.move(to: point)
                         isNewLine = false
                     } else {
-                        path.addLineToPoint(point)
+                        path.addLine(to: point)
                     }
                 } else {
                     isNewLine = true
